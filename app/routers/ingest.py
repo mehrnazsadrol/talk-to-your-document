@@ -5,6 +5,8 @@ from pathlib import Path
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from pypdf import PdfReader
 
+from app.chunker import chunk_text
+
 router = APIRouter()
 
 
@@ -26,9 +28,12 @@ async def ingest(file: UploadFile = File(...)):
     out_path = _data_dir() / f"{doc_id}.txt"
     out_path.write_text(text, encoding="utf-8")
 
+    chunks = chunk_text(text)
+
     return {
         "doc_id": doc_id,
         "filename": file.filename,
         "page_count": len(reader.pages),
         "char_count": len(text),
+        "num_chunks": len(chunks),
     }

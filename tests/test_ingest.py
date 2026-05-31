@@ -30,6 +30,8 @@ def test_ingest_pdf_happy_path(tmp_path, monkeypatch):
     assert body["page_count"] == 2
     assert "doc_id" in body
     assert "char_count" in body
+    assert "num_chunks" in body
+    assert isinstance(body["num_chunks"], int)
 
     out_file = tmp_path / f"{body['doc_id']}.txt"
     assert out_file.exists()
