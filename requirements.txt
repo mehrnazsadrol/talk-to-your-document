@@ -11,3 +11,4 @@ chromadb
 openai
 faster-whisper
 pydub
+streamlit
