@@ -53,6 +53,7 @@ Thumbs.db
 .ipynb_checkpoints/
 
 # Project data (uncomment as needed)
-data/
+data/*
+!data/samples/
 chroma_db/
 # *.sqlite3

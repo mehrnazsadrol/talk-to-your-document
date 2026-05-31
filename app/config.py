@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     deepseek_api_key: str | None = None
     llm_model: str = "deepseek-chat"
     top_k: int = 5
+    whisper_model: str = "base"
+    whisper_device: str = "cpu"
+    whisper_compute_type: str = "int8"
 
 
 settings = Settings()
