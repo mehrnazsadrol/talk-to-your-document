@@ -1,24 +1,22 @@
 import json
-from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
+from app.audio import AudioSegment
 from app.main import app
 
 
-class _StubModel:
-    def transcribe(self, path):
-        segments = [
-            SimpleNamespace(start=0.0, end=1.0, text="hello"),
-            SimpleNamespace(start=1.0, end=2.5, text=" world "),
-        ]
-        info = SimpleNamespace(duration=2.5, language="en")
-        return segments, info
-
-
 def _install_stub(monkeypatch):
-    from app import transcriber
-    monkeypatch.setattr(transcriber, "_get_model", lambda: _StubModel())
+    from app import audio
+
+    def fake_transcribe_segments(path):
+        segments = [
+            AudioSegment(text="hello", start_seconds=0.0, end_seconds=1.0, segment_index=0),
+            AudioSegment(text="world", start_seconds=1.0, end_seconds=2.5, segment_index=1),
+        ]
+        return segments, 2.5, "en"
+
+    monkeypatch.setattr(audio, "transcribe_segments", fake_transcribe_segments)
 
 
 def test_ingest_audio_happy_path(tmp_path, monkeypatch):
@@ -50,8 +48,8 @@ def test_ingest_audio_happy_path(tmp_path, monkeypatch):
     assert txt_file.read_text(encoding="utf-8") == "hello\nworld"
     segments = json.loads(json_file.read_text(encoding="utf-8"))
     assert segments == [
-        {"start": 0.0, "end": 1.0, "text": "hello"},
-        {"start": 1.0, "end": 2.5, "text": "world"},
+        {"text": "hello", "start_seconds": 0.0, "end_seconds": 1.0, "segment_index": 0},
+        {"text": "world", "start_seconds": 1.0, "end_seconds": 2.5, "segment_index": 1},
     ]
 
 

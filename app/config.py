@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     whisper_model: str = "base"
     whisper_device: str = "cpu"
     whisper_compute_type: str = "int8"
+    audio_min_silence_ms: int = 700
+    audio_silence_thresh_db: int = -40
+    audio_max_segment_seconds: int = 30
 
 
 settings = Settings()

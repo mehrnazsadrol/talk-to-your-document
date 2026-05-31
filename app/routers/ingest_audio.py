@@ -2,11 +2,12 @@ import json
 import os
 import shutil
 import uuid
+from dataclasses import asdict
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
-from app import transcriber
+from app import audio
 
 router = APIRouter()
 
@@ -34,17 +35,18 @@ async def ingest_audio(file: UploadFile = File(...)):
     with audio_path.open("wb") as f:
         shutil.copyfileobj(file.file, f)
 
-    segments, duration, language = transcriber.transcribe(str(audio_path))
+    segments, duration, language = audio.transcribe_segments(str(audio_path))
+    segment_dicts = [asdict(s) for s in segments]
 
     txt_path = transcripts_dir / f"{document_id}.txt"
     json_path = transcripts_dir / f"{document_id}.json"
-    txt_path.write_text("\n".join(s["text"] for s in segments), encoding="utf-8")
-    json_path.write_text(json.dumps(segments), encoding="utf-8")
+    txt_path.write_text("\n".join(s["text"] for s in segment_dicts), encoding="utf-8")
+    json_path.write_text(json.dumps(segment_dicts), encoding="utf-8")
 
     return {
         "document_id": document_id,
         "source_filename": file.filename or "",
-        "num_segments": len(segments),
+        "num_segments": len(segment_dicts),
         "duration_seconds": duration,
         "language": language,
     }

@@ -10,3 +10,4 @@ sentence-transformers
 chromadb
 openai
 faster-whisper
+pydub
