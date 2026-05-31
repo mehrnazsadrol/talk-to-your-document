@@ -32,7 +32,7 @@ async def ingest(file: UploadFile = File(...)):
 
     chunks = chunk_text(text)
     embeddings = embed_texts([c.text for c in chunks])
-    add_chunks(document_id, file.filename or "", chunks, embeddings)
+    add_chunks(document_id, file.filename or "", chunks, embeddings, source_type="pdf")
 
     return {
         "document_id": document_id,

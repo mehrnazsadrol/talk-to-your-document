@@ -27,7 +27,7 @@ def _seed(num: int = 3) -> None:
         for i, t in enumerate(texts)
     ]
     embeddings = embed_texts(texts)
-    vs.add_chunks("doc1", "sample.pdf", chunks, embeddings)
+    vs.add_chunks("doc1", "sample.pdf", chunks, embeddings, source_type="pdf")
 
 
 def test_empty_corpus_returns_dont_know_without_calling_llm(tmp_store, monkeypatch):

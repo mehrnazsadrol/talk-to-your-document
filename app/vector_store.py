@@ -1,14 +1,6 @@
-"""Persistent ChromaDB-backed vector store.
-
-The module-level `_client` is cached lazily by `_get_client()`. Tests that
-need to point at a different `settings.chroma_persist_dir` (e.g. a
-`tmp_path`) can reset the cache by setting `vector_store._client = None`
-after monkeypatching the setting, which forces the next call to
-re-construct the client against the new path. This is what simulates a
-"server restart" against the same on-disk database.
-"""
-
 from __future__ import annotations
+
+from typing import Literal
 
 import chromadb
 
@@ -36,32 +28,42 @@ def add_chunks(
     source_filename: str,
     chunks: list[Chunk],
     embeddings: list[list[float]],
+    *,
+    source_type: Literal["pdf", "audio"],
+    extra_metadata: list[dict] | None = None,
 ) -> None:
     if not chunks:
         return
+    if extra_metadata is not None and len(extra_metadata) != len(chunks):
+        raise ValueError(
+            f"extra_metadata length ({len(extra_metadata)}) must match chunks length ({len(chunks)})"
+        )
     collection = _get_collection()
-    collection.upsert(
-        ids=[f"{document_id}:{c.chunk_index}" for c in chunks],
-        documents=[c.text for c in chunks],
-        embeddings=embeddings,
-        metadatas=[
+    metadatas: list[dict] = []
+    for i, c in enumerate(chunks):
+        meta: dict = dict(extra_metadata[i]) if extra_metadata is not None else {}
+        meta.update(
             {
                 "document_id": document_id,
                 "source_filename": source_filename,
                 "chunk_index": c.chunk_index,
                 "start_char": c.start_char,
                 "end_char": c.end_char,
+                "source_type": source_type,
             }
-            for c in chunks
-        ],
+        )
+        metadatas.append(meta)
+    collection.upsert(
+        ids=[f"{document_id}:{c.chunk_index}" for c in chunks],
+        documents=[c.text for c in chunks],
+        embeddings=embeddings,
+        metadatas=metadatas,
     )
 
 
 def query(query_embedding: list[float], top_k: int) -> list[dict]:
     collection = _get_collection()
-    result = collection.query(
-        query_embeddings=[query_embedding], n_results=top_k
-    )
+    result = collection.query(query_embeddings=[query_embedding], n_results=top_k)
     documents = result["documents"][0]
     metadatas = result["metadatas"][0]
     distances = result["distances"][0]
