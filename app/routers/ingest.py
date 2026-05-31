@@ -7,6 +7,7 @@ from pypdf import PdfReader
 
 from app.chunker import chunk_text
 from app.embedder import embed_texts
+from app.vector_store import add_chunks
 
 router = APIRouter()
 
@@ -25,17 +26,16 @@ async def ingest(file: UploadFile = File(...)):
     reader = PdfReader(file.file)
     text = "\n\n".join(page.extract_text() or "" for page in reader.pages)
 
-    doc_id = uuid.uuid4().hex
-    out_path = _data_dir() / f"{doc_id}.txt"
+    document_id = uuid.uuid4().hex
+    out_path = _data_dir() / f"{document_id}.txt"
     out_path.write_text(text, encoding="utf-8")
 
     chunks = chunk_text(text)
     embeddings = embed_texts([c.text for c in chunks])
+    add_chunks(document_id, file.filename or "", chunks, embeddings)
 
     return {
-        "doc_id": doc_id,
-        "filename": file.filename,
-        "page_count": len(reader.pages),
-        "char_count": len(text),
+        "document_id": document_id,
+        "num_pages": len(reader.pages),
         "num_chunks": len(chunks),
     }

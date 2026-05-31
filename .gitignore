@@ -54,5 +54,5 @@ Thumbs.db
 
 # Project data (uncomment as needed)
 data/
-# chroma_db/
+chroma_db/
 # *.sqlite3

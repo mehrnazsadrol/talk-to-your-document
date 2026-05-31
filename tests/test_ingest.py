@@ -16,7 +16,11 @@ def _make_pdf_bytes(pages: int = 1) -> bytes:
 
 
 def test_ingest_pdf_happy_path(tmp_path, monkeypatch):
-    monkeypatch.setenv("INGEST_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("INGEST_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setattr("app.config.settings.chroma_persist_dir", str(tmp_path / "chroma"))
+    import app.vector_store as vs
+    monkeypatch.setattr(vs, "_client", None)
+
     pdf_bytes = _make_pdf_bytes(pages=2)
 
     response = TestClient(app).post(
@@ -26,14 +30,12 @@ def test_ingest_pdf_happy_path(tmp_path, monkeypatch):
 
     assert response.status_code == 200
     body = response.json()
-    assert body["filename"] == "sample.pdf"
-    assert body["page_count"] == 2
-    assert "doc_id" in body
-    assert "char_count" in body
+    assert body["num_pages"] == 2
+    assert "document_id" in body
     assert "num_chunks" in body
     assert isinstance(body["num_chunks"], int)
 
-    out_file = tmp_path / f"{body['doc_id']}.txt"
+    out_file = tmp_path / "data" / f"{body['document_id']}.txt"
     assert out_file.exists()
 
 

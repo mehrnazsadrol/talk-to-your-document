@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     app_env: str = "dev"
     openai_api_key: str | None = None
     embedding_model: str = "all-MiniLM-L6-v2"
+    chroma_persist_dir: str = "chroma_db"
 
 
 settings = Settings()
