@@ -1,3 +1,7 @@
 fastapi
 uvicorn
 pydantic-settings
+pypdf
+python-multipart
+pytest
+httpx
