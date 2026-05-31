@@ -5,3 +5,5 @@ pypdf
 python-multipart
 pytest
 httpx
+torch
+sentence-transformers

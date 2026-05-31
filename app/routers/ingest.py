@@ -6,6 +6,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from pypdf import PdfReader
 
 from app.chunker import chunk_text
+from app.embedder import embed_texts
 
 router = APIRouter()
 
@@ -29,6 +30,7 @@ async def ingest(file: UploadFile = File(...)):
     out_path.write_text(text, encoding="utf-8")
 
     chunks = chunk_text(text)
+    embeddings = embed_texts([c.text for c in chunks])
 
     return {
         "doc_id": doc_id,
