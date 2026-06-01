@@ -5,10 +5,10 @@ import os
 import httpx
 import streamlit as st
 
+from frontend.components.citations import render_sources
+
 API_BASE_URL = os.environ.get("API_BASE_URL", "http://localhost:8000")
-# Ingest can include Whisper transcription + bulk embedding, both multi-second.
 _TIMEOUT = 120.0
-# Single LLM round-trip; 60s is generous for DeepSeek.
 _QUERY_TIMEOUT = 60.0
 
 
@@ -60,8 +60,6 @@ def _query(question: str) -> dict:
 
 
 def _append_source(entry: dict) -> bool:
-    """Append ``entry`` to the sidebar source list unless its document_id is
-    already present. Returns True if appended, False if it was a duplicate."""
     existing_ids = {s["document_id"] for s in st.session_state.sources}
     if entry["document_id"] in existing_ids:
         return False
@@ -157,10 +155,10 @@ if not st.session_state.sources and not st.session_state.messages:
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
+        render_sources(msg.get("sources") or [])
 
 prompt = st.chat_input("Ask a question about your documents...")
 if prompt:
-    # Persist user turn before the LLM call so a failure doesn't lose the question.
     append_turn(st.session_state.messages, "user", prompt)
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -170,6 +168,7 @@ if prompt:
             with st.spinner("Thinking..."):
                 resp = _query(prompt)
             st.markdown(resp["answer"])
+            render_sources(resp["sources"])
             append_turn(
                 st.session_state.messages,
                 "assistant",
