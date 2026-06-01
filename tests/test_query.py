@@ -4,13 +4,14 @@ from fastapi.testclient import TestClient
 import app.llm as llm
 import app.vector_store as vs
 from app.chunker import Chunk
+from app.config import settings
 from app.embedder import embed_texts
 from app.main import app
 
 
 @pytest.fixture
 def tmp_store(tmp_path, monkeypatch):
-    monkeypatch.setattr("app.config.settings.chroma_persist_dir", str(tmp_path))
+    monkeypatch.setattr(settings, "chroma_persist_dir", str(tmp_path))
     monkeypatch.setattr(vs, "_client", None)
     yield tmp_path
     vs._client = None

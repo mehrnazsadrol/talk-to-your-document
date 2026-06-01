@@ -19,7 +19,7 @@ def _data_dir() -> Path:
 
 
 @router.post("/ingest")
-async def ingest(file: UploadFile = File(...)):
+def ingest(file: UploadFile = File(...)):
     if file.content_type != "application/pdf" or not (file.filename or "").lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="File must be a PDF")
 

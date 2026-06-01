@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from fastapi import HTTPException
 from openai import OpenAI
 
 from app.config import settings
@@ -16,6 +17,8 @@ _client: OpenAI | None = None
 def _get_client() -> OpenAI:
     global _client
     if _client is None:
+        if settings.deepseek_api_key is None:
+            raise HTTPException(status_code=503, detail="LLM not configured")
         _client = OpenAI(
             api_key=settings.deepseek_api_key,
             base_url="https://api.deepseek.com",
@@ -31,7 +34,7 @@ def generate_answer(question: str, retrieved: list[dict]) -> str:
             f"Chunk [chunk_index={meta['chunk_index']}] "
             f"(source={meta['source_filename']}):\n{r['text']}"
         )
-    context = "\n\n".join(parts)
+    context = "\n---\n".join(parts)
     user_message = f"{context}\n\nQuestion: {question}"
 
     response = _get_client().chat.completions.create(
@@ -43,4 +46,4 @@ def generate_answer(question: str, retrieved: list[dict]) -> str:
             {"role": "user", "content": user_message},
         ],
     )
-    return response.choices[0].message.content
+    return response.choices[0].message.content or ""

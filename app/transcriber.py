@@ -19,10 +19,16 @@ def _get_model() -> WhisperModel:
 
 
 def transcribe(path: str) -> tuple[list[dict], float, str]:
+    """Returns (segments, duration_seconds, language).
+
+    Language is an empty string if Whisper's detection failed.
+    """
     model = _get_model()
     segments, info = model.transcribe(path)
+    # materialise generator so info fields populate
     out = [
         {"start": float(s.start), "end": float(s.end), "text": s.text.strip()}
         for s in segments
     ]
-    return out, float(info.duration), info.language
+    language = info.language or ""
+    return out, float(info.duration), language

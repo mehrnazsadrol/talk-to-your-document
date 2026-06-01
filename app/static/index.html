@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Talk to Your Documents</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.4rem; }
+  section { margin-top: 1.5rem; padding: 1rem; border: 1px solid #ddd; border-radius: 6px; }
+  label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+  input[type="file"], input[type="text"], textarea { width: 100%; box-sizing: border-box; }
+  button { margin-top: 0.5rem; padding: 0.5rem 1rem; cursor: pointer; }
+  pre { white-space: pre-wrap; background: #f6f6f6; padding: 0.75rem; border-radius: 4px; }
+  .status { margin-top: 0.5rem; color: #555; font-size: 0.9rem; }
+  .sources { margin-top: 0.75rem; font-size: 0.85rem; color: #444; }
+  .sources li { margin-bottom: 0.4rem; }
+</style>
+</head>
+<body>
+<h1>Talk to Your Documents</h1>
+
+<section>
+  <label for="pdf">Upload a PDF</label>
+  <input type="file" id="pdf" accept="application/pdf">
+  <button id="upload">Ingest</button>
+  <div class="status" id="upload-status"></div>
+</section>
+
+<section>
+  <label for="question">Ask a question</label>
+  <textarea id="question" rows="3" placeholder="What does the document say about ..."></textarea>
+  <button id="ask">Ask</button>
+  <div class="status" id="ask-status"></div>
+  <pre id="answer"></pre>
+  <ul class="sources" id="sources"></ul>
+</section>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+$("upload").addEventListener("click", async () => {
+  const f = $("pdf").files[0];
+  if (!f) { $("upload-status").textContent = "Pick a PDF first."; return; }
+  $("upload-status").textContent = "Uploading...";
+  const fd = new FormData();
+  fd.append("file", f);
+  try {
+    const r = await fetch("/ingest", { method: "POST", body: fd });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.detail || r.statusText);
+    $("upload-status").textContent =
+      `Ingested ${f.name}: ${j.num_pages} page(s), ${j.num_chunks} chunk(s).`;
+  } catch (e) {
+    $("upload-status").textContent = "Error: " + e.message;
+  }
+});
+
+$("ask").addEventListener("click", async () => {
+  const q = $("question").value.trim();
+  if (!q) { $("ask-status").textContent = "Enter a question."; return; }
+  $("ask-status").textContent = "Thinking...";
+  $("answer").textContent = "";
+  $("sources").innerHTML = "";
+  try {
+    const r = await fetch("/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: q }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.detail || r.statusText);
+    $("ask-status").textContent = "";
+    $("answer").textContent = j.answer || "(no answer)";
+    for (const s of j.sources || []) {
+      const li = document.createElement("li");
+      li.textContent =
+        `[${s.chunk_index}] ${s.source_filename} — ${s.snippet || ""}`;
+      $("sources").appendChild(li);
+    }
+  } catch (e) {
+    $("ask-status").textContent = "Error: " + e.message;
+  }
+});
+</script>
+</body>
+</html>

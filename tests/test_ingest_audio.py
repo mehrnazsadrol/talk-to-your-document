@@ -1,9 +1,21 @@
 import json
 
+import pytest
 from fastapi.testclient import TestClient
 
+import app.vector_store as vs
 from app.audio import AudioSegment
+from app.config import settings
 from app.main import app
+
+
+@pytest.fixture
+def tmp_store(tmp_path, monkeypatch):
+    monkeypatch.setenv("INGEST_DATA_DIR", str(tmp_path))
+    monkeypatch.setattr(settings, "chroma_persist_dir", str(tmp_path / "chroma"))
+    monkeypatch.setattr(vs, "_client", None)
+    yield tmp_path
+    vs._client = None
 
 
 def _install_stub(monkeypatch):
@@ -19,11 +31,8 @@ def _install_stub(monkeypatch):
     monkeypatch.setattr(audio, "transcribe_segments", fake_transcribe_segments)
 
 
-def test_ingest_audio_happy_path(tmp_path, monkeypatch):
-    monkeypatch.setenv("INGEST_DATA_DIR", str(tmp_path))
-    monkeypatch.setattr("app.config.settings.chroma_persist_dir", str(tmp_path / "chroma"))
-    import app.vector_store as vs
-    monkeypatch.setattr(vs, "_client", None)
+def test_ingest_audio_happy_path(tmp_store, monkeypatch):
+    tmp_path = tmp_store
     _install_stub(monkeypatch)
 
     response = TestClient(app).post(
@@ -50,7 +59,7 @@ def test_ingest_audio_happy_path(tmp_path, monkeypatch):
     assert txt_file.exists()
     assert json_file.exists()
 
-    assert txt_file.read_text(encoding="utf-8") == "hello\nworld"
+    assert txt_file.read_text(encoding="utf-8") == "hello\n\nworld"
     segments = json.loads(json_file.read_text(encoding="utf-8"))
     assert segments == [
         {"text": "hello", "start_seconds": 0.0, "end_seconds": 1.0, "segment_index": 0},
@@ -61,6 +70,7 @@ def test_ingest_audio_happy_path(tmp_path, monkeypatch):
 def test_ingest_audio_rejects_unsupported_extension(tmp_path, monkeypatch):
     monkeypatch.setenv("INGEST_DATA_DIR", str(tmp_path))
     _install_stub(monkeypatch)
+    # No tmp_store fixture: the 415 short-circuits before any vector-store I/O.
 
     response = TestClient(app).post(
         "/ingest_audio",
@@ -70,14 +80,9 @@ def test_ingest_audio_rejects_unsupported_extension(tmp_path, monkeypatch):
     assert response.status_code == 415
 
 
-def test_ingest_audio_indexes_chunks_with_timestamps(tmp_path, monkeypatch):
+def test_ingest_audio_indexes_chunks_with_timestamps(tmp_store, monkeypatch):
     """End-to-end: audio segments flow through chunker + embedder + chroma
     and come back out with source_type="audio" plus timestamp ranges."""
-    monkeypatch.setenv("INGEST_DATA_DIR", str(tmp_path))
-    monkeypatch.setattr("app.config.settings.chroma_persist_dir", str(tmp_path / "chroma"))
-    import app.vector_store as vs
-    monkeypatch.setattr(vs, "_client", None)
-
     from app import audio
     from app.audio import AudioSegment
 
@@ -120,17 +125,67 @@ def test_ingest_audio_indexes_chunks_with_timestamps(tmp_path, monkeypatch):
     assert metas[0]["start_seconds"] == 0.0
     assert metas[0]["end_seconds"] == 4.0
 
-    vs._client = None
+
+def test_ingest_audio_multi_chunk_straddling_joiners(tmp_store, monkeypatch):
+    """Force multiple chunks across segment boundaries so some chunks
+    start mid-joiner. Each chunk's timestamp range should still cover
+    every segment it overlaps, including ones bordering the joiner."""
+    from app import audio
+    from app.audio import AudioSegment
+    from app.routers import ingest_audio as ingest_audio_router
+    from app.chunker import chunk_text as real_chunk_text
+
+    # Three segments, each ~40 chars, joined by "\n\n" => full_text ~124 chars.
+    seg_text = "x" * 40
+    segments = [
+        AudioSegment(text=seg_text, start_seconds=0.0, end_seconds=1.0, segment_index=0),
+        AudioSegment(text=seg_text, start_seconds=1.0, end_seconds=2.0, segment_index=1),
+        AudioSegment(text=seg_text, start_seconds=2.0, end_seconds=3.0, segment_index=2),
+    ]
+
+    def fake_transcribe_segments(path):
+        return segments, 3.0, "en"
+
+    monkeypatch.setattr(audio, "transcribe_segments", fake_transcribe_segments)
+
+    # Force the chunker to a tiny size so we get multiple chunks with
+    # boundaries that fall in/near the "\n\n" joiners.
+    def small_chunk_text(text):
+        return real_chunk_text(text, chunk_size=12, chunk_overlap=2)
+
+    monkeypatch.setattr(ingest_audio_router, "chunk_text", small_chunk_text)
+
+    response = TestClient(app).post(
+        "/ingest_audio",
+        files={"file": ("multi.wav", b"fake-wav-bytes", "audio/wav")},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["num_chunks"] >= 2
+
+    collection = vs._get_collection()
+    metas = collection.get(include=["metadatas"])["metadatas"]
+
+    # Sanity: every chunk should have a non-degenerate timestamp range
+    # (start < end) because each chunk covers at least one full segment
+    # or part of one. With the fix, chunks straddling a joiner pick up
+    # both the previous and next segment's timestamps.
+    for meta in metas:
+        assert meta["end_seconds"] > meta["start_seconds"], (
+            f"chunk timestamps collapsed: {meta}"
+        )
+
+    # At least one chunk must span more than a single segment (i.e. cross
+    # a joiner) — otherwise the test isn't exercising the boundary case.
+    spans_multiple = [
+        m for m in metas if (m["end_seconds"] - m["start_seconds"]) > 1.0
+    ]
+    assert spans_multiple, "expected at least one chunk to span a joiner"
 
 
-def test_ingest_audio_empty_transcript_skips_indexing(tmp_path, monkeypatch):
+def test_ingest_audio_empty_transcript_skips_indexing(tmp_store, monkeypatch):
     """Silent clip → empty segments → no chunking/embedding/indexing,
     transcript files still written, num_chunks=0."""
-    monkeypatch.setenv("INGEST_DATA_DIR", str(tmp_path))
-    monkeypatch.setattr("app.config.settings.chroma_persist_dir", str(tmp_path / "chroma"))
-    import app.vector_store as vs
-    monkeypatch.setattr(vs, "_client", None)
-
     from app import audio
 
     def fake_empty(path):
@@ -147,4 +202,3 @@ def test_ingest_audio_empty_transcript_skips_indexing(tmp_path, monkeypatch):
     assert body["num_segments"] == 0
     assert body["num_chunks"] == 0
     assert vs._get_collection().count() == 0
-    vs._client = None

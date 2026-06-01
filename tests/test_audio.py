@@ -72,8 +72,9 @@ def test_split_audio_maps_ms_to_seconds(monkeypatch):
         nonsilent_ranges=[(0, 1500), (2000, 3500), (4000, 6000)],
     )
 
-    out = audio_mod.split_audio("ignored.wav")
+    duration, out = audio_mod.split_audio("ignored.wav")
     try:
+        assert duration == 10.0
         bounds = [(s, e) for s, e, _p in out]
         assert bounds == [(0.0, 1.5), (2.0, 3.5), (4.0, 6.0)]
         for _s, _e, p in out:
@@ -86,7 +87,9 @@ def test_split_audio_maps_ms_to_seconds(monkeypatch):
 
 def test_split_audio_returns_empty_when_no_voiced_ranges(monkeypatch):
     _install_pydub_stub(monkeypatch, length_ms=10_000, nonsilent_ranges=[])
-    assert audio_mod.split_audio("ignored.wav") == []
+    duration, out = audio_mod.split_audio("ignored.wav")
+    assert duration == 10.0
+    assert out == []
 
 
 def test_split_audio_fallback_fixed_window_for_single_giant_block(monkeypatch):
@@ -97,14 +100,44 @@ def test_split_audio_fallback_fixed_window_for_single_giant_block(monkeypatch):
         nonsilent_ranges=[(0, 75_000)],
     )
 
-    out = audio_mod.split_audio("ignored.wav")
+    duration, out = audio_mod.split_audio("ignored.wav")
     try:
+        assert duration == 75.0
         bounds = [(s, e) for s, e, _p in out]
         assert bounds == [(0.0, 30.0), (30.0, 60.0), (60.0, 75.0)]
     finally:
         for _s, _e, p in out:
             if os.path.exists(p):
                 os.unlink(p)
+
+
+def test_split_audio_cleans_up_tempfiles_on_partial_failure(monkeypatch):
+    _install_pydub_stub(
+        monkeypatch,
+        length_ms=10_000,
+        nonsilent_ranges=[(0, 1500), (2000, 3500), (4000, 6000)],
+    )
+
+    created_paths: list[str] = []
+    orig_export_slice = audio_mod._export_slice
+    calls = {"i": 0}
+
+    def failing_export(audio, start_ms, end_ms):
+        calls["i"] += 1
+        if calls["i"] == 3:
+            raise RuntimeError("disk full")
+        p = orig_export_slice(audio, start_ms, end_ms)
+        created_paths.append(p)
+        return p
+
+    monkeypatch.setattr(audio_mod, "_export_slice", failing_export)
+
+    with pytest.raises(RuntimeError):
+        audio_mod.split_audio("ignored.wav")
+
+    assert created_paths, "expected at least one tempfile before failure"
+    for p in created_paths:
+        assert not os.path.exists(p), f"tempfile not cleaned up: {p}"
 
 
 def test_transcribe_segments_indices_text_and_monotonic(monkeypatch):

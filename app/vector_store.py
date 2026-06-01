@@ -7,10 +7,10 @@ import chromadb
 from app.chunker import Chunk
 from app.config import settings
 
-_client: chromadb.api.client.Client | None = None
+_client: chromadb.ClientAPI | None = None
 
 
-def _get_client() -> chromadb.api.client.Client:
+def _get_client() -> chromadb.ClientAPI:
     global _client
     if _client is None:
         _client = chromadb.PersistentClient(path=settings.chroma_persist_dir)
@@ -32,6 +32,9 @@ def add_chunks(
     source_type: Literal["pdf", "audio"],
     extra_metadata: list[dict] | None = None,
 ) -> None:
+    """Upsert chunks. Base metadata fields (document_id, source_filename,
+    chunk_index, start_char, end_char, source_type) always override any
+    extra_metadata keys with the same names."""
     if not chunks:
         return
     if extra_metadata is not None and len(extra_metadata) != len(chunks):

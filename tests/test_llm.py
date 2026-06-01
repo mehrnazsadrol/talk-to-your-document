@@ -1,6 +1,10 @@
 from types import SimpleNamespace
 
+import pytest
+from fastapi import HTTPException
+
 import app.llm as llm
+from app.config import settings
 
 
 def test_generate_answer_uses_system_prompt_and_returns_content(monkeypatch):
@@ -40,3 +44,27 @@ def test_generate_answer_uses_system_prompt_and_returns_content(monkeypatch):
     assert messages[1]["role"] == "user"
     assert "alpha apple is a fruit" in messages[1]["content"]
     assert "what is alpha?" in messages[1]["content"]
+
+
+def test_generate_answer_returns_empty_string_when_content_is_none(monkeypatch):
+    def fake_create(**kwargs):
+        return SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content=None))]
+        )
+
+    fake_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=fake_create))
+    )
+    monkeypatch.setattr(llm, "_client", fake_client)
+
+    result = llm.generate_answer("anything?", [])
+    assert result == ""
+
+
+def test_generate_answer_raises_503_when_api_key_missing(monkeypatch):
+    monkeypatch.setattr(settings, "deepseek_api_key", None)
+    monkeypatch.setattr(llm, "_client", None)
+
+    with pytest.raises(HTTPException) as excinfo:
+        llm.generate_answer("anything?", [])
+    assert excinfo.value.status_code == 503

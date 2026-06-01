@@ -29,8 +29,10 @@ def _export_slice(audio: PydubAudioSegment, start_ms: int, end_ms: int) -> str:
     return tmp.name
 
 
-def split_audio(path: str) -> list[tuple[float, float, str]]:
+def split_audio(path: str) -> tuple[float, list[tuple[float, float, str]]]:
     audio = PydubAudioSegment.from_file(path)
+    total_ms = len(audio)
+    duration_seconds = total_ms / 1000.0
     nonsilent = detect_nonsilent(
         audio,
         min_silence_len=settings.audio_min_silence_ms,
@@ -38,29 +40,34 @@ def split_audio(path: str) -> list[tuple[float, float, str]]:
     )
 
     if not nonsilent:
-        return []
+        return duration_seconds, []
 
-    total_ms = len(audio)
     max_ms = settings.audio_max_segment_seconds * 1000
+    out: list[tuple[float, float, str]] = []
 
-    if len(nonsilent) == 1 and total_ms > max_ms:
-        out: list[tuple[float, float, str]] = []
-        for start_ms in range(0, total_ms, max_ms):
-            end_ms = min(start_ms + max_ms, total_ms)
-            tmp_path = _export_slice(audio, start_ms, end_ms)
-            out.append((start_ms / 1000.0, end_ms / 1000.0, tmp_path))
-        return out
+    try:
+        if len(nonsilent) == 1 and total_ms > max_ms:
+            for start_ms in range(0, total_ms, max_ms):
+                end_ms = min(start_ms + max_ms, total_ms)
+                tmp_path = _export_slice(audio, start_ms, end_ms)
+                out.append((start_ms / 1000.0, end_ms / 1000.0, tmp_path))
+        else:
+            for start_ms, end_ms in nonsilent:
+                tmp_path = _export_slice(audio, start_ms, end_ms)
+                out.append((start_ms / 1000.0, end_ms / 1000.0, tmp_path))
+    except Exception:
+        for _s, _e, p in out:
+            try:
+                os.unlink(p)
+            except OSError:
+                pass
+        raise
 
-    out = []
-    for start_ms, end_ms in nonsilent:
-        tmp_path = _export_slice(audio, start_ms, end_ms)
-        out.append((start_ms / 1000.0, end_ms / 1000.0, tmp_path))
-    return out
+    return duration_seconds, out
 
 
 def transcribe_segments(path: str) -> tuple[list[AudioSegment], float, str]:
-    duration_seconds = len(PydubAudioSegment.from_file(path)) / 1000.0
-    slices = split_audio(path)
+    duration_seconds, slices = split_audio(path)
 
     results: list[AudioSegment] = []
     language = ""

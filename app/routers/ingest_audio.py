@@ -18,11 +18,13 @@ ALLOWED_SUFFIXES = {".wav", ".mp3", ".m4a", ".ogg", ".flac", ".webm"}
 
 
 def _data_dir() -> Path:
-    return Path(os.environ.get("INGEST_DATA_DIR", "data"))
+    path = Path(os.environ.get("INGEST_DATA_DIR", "data"))
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 @router.post("/ingest_audio")
-async def ingest_audio(file: UploadFile = File(...)):
+def ingest_audio(file: UploadFile = File(...)):
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in ALLOWED_SUFFIXES:
         raise HTTPException(status_code=415, detail="Unsupported audio format")
@@ -43,7 +45,7 @@ async def ingest_audio(file: UploadFile = File(...)):
 
     txt_path = transcripts_dir / f"{document_id}.txt"
     json_path = transcripts_dir / f"{document_id}.json"
-    txt_path.write_text("\n".join(s["text"] for s in segment_dicts), encoding="utf-8")
+    txt_path.write_text("\n\n".join(s["text"] for s in segment_dicts), encoding="utf-8")
     json_path.write_text(json.dumps(segment_dicts), encoding="utf-8")
 
     JOINER = "\n\n"
@@ -51,10 +53,14 @@ async def ingest_audio(file: UploadFile = File(...)):
     parts: list[str] = []
     cursor = 0
     for i, seg in enumerate(segments):
-        if i > 0:
-            cursor += len(JOINER)
         start = cursor
-        end = cursor + len(seg.text)
+        # Include the trailing joiner in every segment's range except the last,
+        # so a chunk whose start_char lands inside a joiner still overlaps the
+        # preceding segment.
+        if i < len(segments) - 1:
+            end = cursor + len(seg.text) + len(JOINER)
+        else:
+            end = cursor + len(seg.text)
         segment_offsets.append((start, end, seg.start_seconds, seg.end_seconds))
         parts.append(seg.text)
         cursor = end

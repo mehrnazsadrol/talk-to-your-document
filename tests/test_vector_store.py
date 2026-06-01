@@ -2,11 +2,12 @@ import pytest
 
 import app.vector_store as vs
 from app.chunker import Chunk
+from app.config import settings
 
 
 @pytest.fixture
 def tmp_store(tmp_path, monkeypatch):
-    monkeypatch.setattr("app.config.settings.chroma_persist_dir", str(tmp_path))
+    monkeypatch.setattr(settings, "chroma_persist_dir", str(tmp_path))
     monkeypatch.setattr(vs, "_client", None)
     yield tmp_path
     vs._client = None
@@ -170,7 +171,7 @@ def test_multi_segment_span_offset_mapping(tmp_store):
 
 
 def test_persistence_across_client_reset(tmp_path, monkeypatch):
-    monkeypatch.setattr("app.config.settings.chroma_persist_dir", str(tmp_path))
+    monkeypatch.setattr(settings, "chroma_persist_dir", str(tmp_path))
     monkeypatch.setattr(vs, "_client", None)
 
     chunks = _chunks()
