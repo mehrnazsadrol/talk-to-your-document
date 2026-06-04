@@ -1,0 +1,14 @@
+.venv/
+.git/
+chroma_db/
+data/
+tests/
+frontend/
+__pycache__/
+*.pyc
+.env
+mlruns/
+eval/results/
+.pytest_cache/
+pytest-cache-files-*/
+.DS_Store

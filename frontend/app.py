@@ -85,6 +85,7 @@ with st.sidebar:
         key="audio_upload",
         accept_multiple_files=True,
     )
+    st.caption("This can take 1–2 minutes for long recordings.")
 
     if st.button("Ingest"):
         if not pdf_files and not audio_files:
@@ -92,7 +93,8 @@ with st.sidebar:
         else:
             for pdf_file in pdf_files or []:
                 try:
-                    result = _ingest_pdf(pdf_file)
+                    with st.spinner("Indexing PDF..."):
+                        result = _ingest_pdf(pdf_file)
                     appended = _append_source(
                         {
                             "source_filename": pdf_file.name,
@@ -108,13 +110,22 @@ with st.sidebar:
                     else:
                         st.info(f"'{pdf_file.name}' already ingested.")
                 except httpx.HTTPStatusError as e:
-                    st.error(f"{pdf_file.name}: {e.response.text}")
+                    try:
+                        detail = e.response.json().get("detail")
+                    except ValueError:
+                        detail = None
+                    st.error(f"{pdf_file.name}: {detail or e.response.text}")
+                except httpx.ConnectError:
+                    st.error(
+                        f"Couldn't reach the backend. Is FastAPI running on {API_BASE_URL}?"
+                    )
                 except httpx.HTTPError as e:
                     st.error(f"{pdf_file.name}: request failed: {e}")
 
             for audio_file in audio_files or []:
                 try:
-                    result = _ingest_audio(audio_file)
+                    with st.spinner("Transcribing audio..."):
+                        result = _ingest_audio(audio_file)
                     appended = _append_source(
                         {
                             "source_filename": result.get("source_filename")
@@ -131,33 +142,65 @@ with st.sidebar:
                     else:
                         st.info(f"'{audio_file.name}' already ingested.")
                 except httpx.HTTPStatusError as e:
-                    st.error(f"{audio_file.name}: {e.response.text}")
+                    try:
+                        detail = e.response.json().get("detail")
+                    except ValueError:
+                        detail = None
+                    st.error(f"{audio_file.name}: {detail or e.response.text}")
+                except httpx.ConnectError:
+                    st.error(
+                        f"Couldn't reach the backend. Is FastAPI running on {API_BASE_URL}?"
+                    )
                 except httpx.HTTPError as e:
                     st.error(f"{audio_file.name}: request failed: {e}")
+
+    st.divider()
 
     if st.session_state.sources:
         st.subheader("Ingested this session")
         for s in st.session_state.sources:
-            st.write(
-                f"- [{s['kind']}] {s['source_filename']} ({s['num_chunks']} chunks)"
-            )
+            st.write(f"{s['source_filename']} · {s['kind']} · {s['num_chunks']} chunks")
+
+    st.divider()
 
     if st.button("Clear chat"):
         st.session_state.messages = []
         st.rerun()
 
-st.title("Talk to Your Documents")
-st.caption("Ask questions across the PDFs and audio you ingest.")
+    st.caption("Local RAG · DeepSeek · ChromaDB")
 
-if not st.session_state.sources and not st.session_state.messages:
-    st.info("Ingest a document from the sidebar to get started.")
+st.title("Talk to Your Documents")
+st.caption("Ask questions across your PDFs and audio. Answers cite the exact source.")
+
+if not st.session_state.sources:
+    with st.container():
+        st.write("Upload a PDF or audio file from the sidebar to get started.")
+        st.write("Try: a research paper, a podcast episode, a lecture recording.")
+
+if st.session_state.sources and not st.session_state.messages:
+    suggestions = [
+        "What is this document about?",
+        "Summarise the key claims.",
+        "What evidence is given for X?",
+    ]
+    cols = st.columns(3)
+    for col, suggestion in zip(cols, suggestions):
+        if col.button(suggestion, key=f"suggest_{suggestion}"):
+            st.session_state._suggested = suggestion
+            st.rerun()
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
         render_sources(msg.get("sources") or [])
 
-prompt = st.chat_input("Ask a question about your documents...")
+prompt = st.chat_input(
+    "Ask a question about your documents...",
+    disabled=not st.session_state.sources,
+)
+if not prompt and st.session_state.get("_suggested"):
+    prompt = st.session_state._suggested
+    del st.session_state._suggested
 if prompt:
     append_turn(st.session_state.messages, "user", prompt)
     with st.chat_message("user"):
@@ -165,7 +208,7 @@ if prompt:
 
     with st.chat_message("assistant"):
         try:
-            with st.spinner("Thinking..."):
+            with st.spinner("Searching your sources..."):
                 resp = _query(prompt)
             st.markdown(resp["answer"])
             render_sources(resp["sources"])
@@ -177,5 +220,9 @@ if prompt:
             )
         except httpx.HTTPStatusError as e:
             st.error(f"Query failed: {e.response.text}")
+        except httpx.ConnectError:
+            st.error(
+                f"Couldn't reach the backend. Is FastAPI running on {API_BASE_URL}?"
+            )
         except httpx.HTTPError as e:
             st.error(f"Request failed: {e}")
