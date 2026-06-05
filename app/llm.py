@@ -26,7 +26,9 @@ def _get_client() -> OpenAI:
     return _client
 
 
-def generate_answer(question: str, retrieved: list[dict]) -> str:
+def generate_answer(
+    question: str, retrieved: list[dict]
+) -> tuple[str, dict | None]:
     parts = []
     for r in retrieved:
         meta = r["metadata"]
@@ -46,4 +48,11 @@ def generate_answer(question: str, retrieved: list[dict]) -> str:
             {"role": "user", "content": user_message},
         ],
     )
-    return response.choices[0].message.content or ""
+    answer = response.choices[0].message.content or ""
+    usage: dict | None = None
+    if response.usage is not None:
+        usage = {
+            "prompt_tokens": response.usage.prompt_tokens,
+            "completion_tokens": response.usage.completion_tokens,
+        }
+    return answer, usage

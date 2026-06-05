@@ -13,7 +13,8 @@ def test_generate_answer_uses_system_prompt_and_returns_content(monkeypatch):
     def fake_create(**kwargs):
         captured["kwargs"] = kwargs
         return SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content="the answer"))]
+            choices=[SimpleNamespace(message=SimpleNamespace(content="the answer"))],
+            usage=SimpleNamespace(prompt_tokens=12, completion_tokens=34),
         )
 
     fake_client = SimpleNamespace(
@@ -35,9 +36,10 @@ def test_generate_answer_uses_system_prompt_and_returns_content(monkeypatch):
         }
     ]
 
-    result = llm.generate_answer("what is alpha?", retrieved)
+    answer, usage = llm.generate_answer("what is alpha?", retrieved)
 
-    assert result == "the answer"
+    assert answer == "the answer"
+    assert usage == {"prompt_tokens": 12, "completion_tokens": 34}
     messages = captured["kwargs"]["messages"]
     assert messages[0]["role"] == "system"
     assert "strictly from the provided context" in messages[0]["content"]
@@ -49,7 +51,8 @@ def test_generate_answer_uses_system_prompt_and_returns_content(monkeypatch):
 def test_generate_answer_returns_empty_string_when_content_is_none(monkeypatch):
     def fake_create(**kwargs):
         return SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content=None))]
+            choices=[SimpleNamespace(message=SimpleNamespace(content=None))],
+            usage=None,
         )
 
     fake_client = SimpleNamespace(
@@ -57,8 +60,9 @@ def test_generate_answer_returns_empty_string_when_content_is_none(monkeypatch):
     )
     monkeypatch.setattr(llm, "_client", fake_client)
 
-    result = llm.generate_answer("anything?", [])
-    assert result == ""
+    answer, usage = llm.generate_answer("anything?", [])
+    assert answer == ""
+    assert usage is None
 
 
 def test_generate_answer_raises_503_when_api_key_missing(monkeypatch):
