@@ -3,9 +3,12 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 
+from app import tracking
 from app.routers import ingest, ingest_audio, query
 
 _STATIC_DIR = Path(__file__).parent / "static"
+
+tracking.init()
 
 app = FastAPI()
 app.include_router(ingest.router)

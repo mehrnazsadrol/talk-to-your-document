@@ -57,4 +57,5 @@ Thumbs.db
 data/*
 !data/samples/
 chroma_db/
+mlruns/
 # *.sqlite3
