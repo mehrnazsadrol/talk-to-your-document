@@ -1,0 +1,2 @@
+{"id": "q01", "question": "PLACEHOLDER — replace with a real question about your PDF.", "expected_source_filename": "paper.pdf", "expected_chunk_indices": [0], "notes": "Replace with real Q&A pairs once paper.pdf is in data/golden/. Target ~10 PDF questions."}
+{"id": "q11", "question": "PLACEHOLDER — replace with a real question about your audio clip.", "expected_source_filename": "clip.mp3", "expected_chunk_indices": [0], "notes": "Replace with real Q&A pairs once clip.mp3 is in data/golden/. Target ~5 audio questions."}
