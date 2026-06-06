@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     mlflow_tracking_uri: str = "file://./mlruns"
     mlflow_experiment: str = "talk-to-your-documents"
     mlflow_enabled: bool = True
+    drift_logging_enabled: bool = True
+    drift_threshold: float = 0.15
 
 
 settings = Settings()

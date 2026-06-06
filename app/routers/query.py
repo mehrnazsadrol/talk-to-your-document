@@ -3,7 +3,7 @@ import time
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app import llm, tracking
+from app import drift, llm, tracking
 from app.config import settings
 from app.embedder import embed_texts
 from app.vector_store import _get_collection
@@ -37,6 +37,9 @@ def query(req: QueryRequest):
         retrieved = vector_query(question_embedding, top_k=k)
         mlrun.log_metric("retrieve_ms", (time.perf_counter() - t0) * 1000)
 
+        top_distance = retrieved[0]["distance"] if retrieved else 1.0
+        mlrun.log_metric("top_distance", top_distance)
+
         mlrun.log_dict(
             [
                 {
@@ -55,35 +58,36 @@ def query(req: QueryRequest):
             mlrun.log_metric("completion_tokens", 0)
             response_body = {"answer": "I don't know.", "sources": []}
             mlrun.log_dict(response_body, "response.json")
-            return response_body
-
-        t0 = time.perf_counter()
-        answer, usage = llm.generate_answer(req.question, retrieved)
-        mlrun.log_metric("llm_ms", (time.perf_counter() - t0) * 1000)
-
-        if usage is None:
-            mlrun.log_metric("prompt_tokens", 0)
-            mlrun.log_metric("completion_tokens", 0)
-            mlrun.set_tag("usage_missing", "true")
         else:
-            mlrun.log_metric("prompt_tokens", usage["prompt_tokens"])
-            mlrun.log_metric("completion_tokens", usage["completion_tokens"])
+            t0 = time.perf_counter()
+            answer, usage = llm.generate_answer(req.question, retrieved)
+            mlrun.log_metric("llm_ms", (time.perf_counter() - t0) * 1000)
 
-        source_types = sorted(
-            {r["metadata"].get("source_type", "unknown") for r in retrieved}
-        )
-        mlrun.set_tag("source_types", ",".join(source_types))
+            if usage is None:
+                mlrun.log_metric("prompt_tokens", 0)
+                mlrun.log_metric("completion_tokens", 0)
+                mlrun.set_tag("usage_missing", "true")
+            else:
+                mlrun.log_metric("prompt_tokens", usage["prompt_tokens"])
+                mlrun.log_metric("completion_tokens", usage["completion_tokens"])
 
-        sources = [
-            {
-                "document_id": r["metadata"]["document_id"],
-                "chunk_index": r["metadata"]["chunk_index"],
-                "source_filename": r["metadata"]["source_filename"],
-                "snippet": r["text"][:200],
-                "distance": r["distance"],
-            }
-            for r in retrieved
-        ]
-        response_body = {"answer": answer, "sources": sources}
-        mlrun.log_dict(response_body, "response.json")
-        return response_body
+            source_types = sorted(
+                {r["metadata"].get("source_type", "unknown") for r in retrieved}
+            )
+            mlrun.set_tag("source_types", ",".join(source_types))
+
+            sources = [
+                {
+                    "document_id": r["metadata"]["document_id"],
+                    "chunk_index": r["metadata"]["chunk_index"],
+                    "source_filename": r["metadata"]["source_filename"],
+                    "snippet": r["text"][:200],
+                    "distance": r["distance"],
+                }
+                for r in retrieved
+            ]
+            response_body = {"answer": answer, "sources": sources}
+            mlrun.log_dict(response_body, "response.json")
+
+    drift.log_query(req.question, question_embedding, top_distance)
+    return response_body

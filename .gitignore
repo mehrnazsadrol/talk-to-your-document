@@ -60,4 +60,6 @@ data/*
 chroma_db/
 mlruns/
 eval/results/*.json
+eval/drift/queries.jsonl
+eval/drift/results/*.json
 # *.sqlite3
