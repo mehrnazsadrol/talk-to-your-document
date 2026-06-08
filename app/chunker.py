@@ -72,15 +72,6 @@ def _split_offsets(
 def chunk_text(
     text: str, chunk_size: int = 500, chunk_overlap: int = 50
 ) -> list[Chunk]:
-    """Split `text` into chunks of approximately `chunk_size` tokens with
-    approximately `chunk_overlap` tokens of overlap between adjacent chunks.
-
-    Tokens are approximated as `chars / 4`; internally we work with
-    `chunk_size * 4` and `chunk_overlap * 4` character budgets.
-
-    Pure function — no I/O. Deterministic: same input always yields the
-    same output.
-    """
     if not text:
         return []
 

@@ -15,13 +15,13 @@ from app import audio, tracking, vector_store
 from app.chunker import chunk_text
 from app.config import settings
 from app.embedder import embed_texts
+from app.text_cleaning import strip_front_matter
 
 PDF_SUFFIXES = {".pdf"}
 AUDIO_SUFFIXES = {".wav", ".mp3", ".m4a", ".ogg", ".flac", ".webm"}
 
 
 def load_golden_set(path: Path) -> list[dict]:
-    """Read a JSONL golden set; one record per line."""
     out: list[dict] = []
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
@@ -38,6 +38,7 @@ def _doc_id(path: Path) -> str:
 def _seed_pdf(path: Path) -> None:
     reader = PdfReader(str(path))
     text = "\n\n".join(page.extract_text() or "" for page in reader.pages)
+    text = strip_front_matter(text)
     chunks = chunk_text(text)
     if not chunks:
         return
@@ -126,8 +127,6 @@ def hit_rate_at_k(
     expected_chunk_indices: list[int],
     k: int,
 ) -> bool:
-    """True if any of the top-k retrieved chunks matches the expected filename
-    AND has a chunk_index in the expected list."""
     expected = set(expected_chunk_indices)
     for hit in retrieved[:k]:
         meta = hit["metadata"]

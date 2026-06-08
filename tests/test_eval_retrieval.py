@@ -113,11 +113,9 @@ def test_run_eval_end_to_end(tmp_store, tmp_path, monkeypatch):
 
     assert 0.0 <= aggregate["hit_rate_at_3"] <= 1.0
     assert 0.0 <= aggregate["hit_rate_at_5"] <= 1.0
-    # q1 hits, q2 misses → 0.5.
     assert aggregate["hit_rate_at_3"] == 0.5
     assert aggregate["hit_rate_at_5"] == 0.5
 
-    # JSON written and matches returned aggregate.
     written = list(results_dir.glob("*.json"))
     assert len(written) == 1
     payload = json.loads(written[0].read_text(encoding="utf-8"))
