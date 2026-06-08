@@ -38,6 +38,26 @@ A user uploads a PDF or audio file. The backend extracts text (pypdf for PDFs, f
 
 ![Architecture](docs/architecture.png)
 
+```mermaid
+flowchart LR
+  U[User] -->|PDF| IP[POST /ingest]
+  U -->|audio| IA[POST /ingest_audio]
+  IP --> EX[pypdf extract]
+  IA --> WH[faster-whisper + pydub]
+  EX --> CK[recursive chunker]
+  WH --> CK
+  CK --> EMB[(MiniLM-L6 embedder)]
+  EMB --> CH[(ChromaDB)]
+  U -->|question| QR[POST /query]
+  QR --> EMB
+  EMB --> CH
+  CH --> LLM[(DeepSeek-chat)]
+  LLM --> ANS[answer + sources]
+  ANS --> U
+  QR -.-> ML[(MLflow)]
+  QR -.-> DR[(drift log)]
+```
+
 ---
 
 ## Key numbers
@@ -118,7 +138,7 @@ A 5-bullet preview; full reasoning + experiments lives in `docs/decisions.md`.
 
 ## What I'd do next
 
-Honest list of known gaps and future work — the part interviewers ask about.
+Honest list of known gaps and future work
 
 - **Capture `page_number` per PDF chunk** (ticket 1.4 follow-up). Today PDF citations are filename-only; audio citations already show `mm:ss`.
 - **Idempotent `document_id`** via `sha256(file_bytes)[:16]` (code-review item #43). Today re-uploading the same PDF creates duplicate chunks, eating retrieval top-k budget.
@@ -166,8 +186,3 @@ talk-to-your-document/
 └── requirements.txt         all Python deps
 ```
 
----
-
-## License
-
-MIT — see [LICENSE](LICENSE).
