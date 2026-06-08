@@ -4,6 +4,7 @@ pydantic-settings
 pypdf
 python-multipart
 pytest
+pytest-cov
 httpx
 torch
 sentence-transformers

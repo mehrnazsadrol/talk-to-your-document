@@ -176,6 +176,47 @@ def test_mlflow_enabled_logs_one_run_with_metrics_params_artifacts(
     assert response_artifact["answer"] == body["answer"]
 
 
+def test_response_shape_matches_contract(tmp_store, monkeypatch):
+    """The response JSON must have exactly {answer, sources}, and each
+    source must have exactly {document_id, chunk_index, source_filename,
+    snippet, distance} — nothing more, nothing less. Locks the public API."""
+    _seed()
+    monkeypatch.setattr(
+        llm,
+        "generate_answer",
+        lambda q, r: ("answer", {"prompt_tokens": 1, "completion_tokens": 2}),
+    )
+
+    response = TestClient(app).post("/query", json={"question": "alpha?"})
+    assert response.status_code == 200
+    body = response.json()
+
+    assert set(body.keys()) == {"answer", "sources"}
+    assert body["sources"], "expected at least one source for the seeded corpus"
+    for src in body["sources"]:
+        assert set(src.keys()) == {
+            "document_id",
+            "chunk_index",
+            "source_filename",
+            "snippet",
+            "distance",
+        }
+
+
+def test_top_k_zero_returns_422(tmp_store):
+    response = TestClient(app).post(
+        "/query", json={"question": "anything?", "top_k": 0}
+    )
+    assert response.status_code == 422
+
+
+def test_top_k_above_max_returns_422(tmp_store):
+    response = TestClient(app).post(
+        "/query", json={"question": "anything?", "top_k": 1000}
+    )
+    assert response.status_code == 422
+
+
 def test_mlflow_enabled_logs_run_for_empty_corpus(tmp_store, mlflow_tmp, monkeypatch):
     def boom(*args, **kwargs):
         raise AssertionError("LLM must not be called when corpus is empty")

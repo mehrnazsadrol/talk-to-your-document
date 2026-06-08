@@ -56,3 +56,32 @@ def test_chunk_indices_sequential_and_offsets_consistent():
 
     assert chunks[0].start_char == 0
     assert chunks[-1].end_char == len(text)
+
+
+def test_chunks_concatenate_to_original_after_deoverlap():
+    """Property: stripping each chunk's leading overlap reproduces the
+    original text exactly. Chunks are offset-based so this is a structural
+    guarantee, but we verify on a hand-picked corpus to catch any future
+    regression where chunks gain/lose characters at boundaries."""
+    corpus = (
+        "Paragraph one with several sentences. It has commas, periods. "
+        "And it goes on for a while.\n\n"
+        "Paragraph two is shorter.\n\n"
+        "Paragraph three. Multiple. Sentences. Here.\n\n"
+        + ("Filler line. " * 80)
+    )
+
+    chunks = chunk_text(corpus, chunk_size=50, chunk_overlap=10)
+    assert len(chunks) > 1
+
+    # First chunk contributes its whole text; each subsequent chunk
+    # contributes only the slice starting where the previous chunk ended.
+    rebuilt = chunks[0].text
+    for prev, nxt in zip(chunks, chunks[1:]):
+        # The next chunk's first (prev.end_char - nxt.start_char) chars
+        # are the overlap with prev; skip them.
+        overlap = prev.end_char - nxt.start_char
+        assert overlap >= 0
+        rebuilt += nxt.text[overlap:]
+
+    assert rebuilt == corpus

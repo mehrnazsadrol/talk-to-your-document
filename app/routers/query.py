@@ -1,7 +1,7 @@
 import time
 
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app import drift, llm, tracking
 from app.config import settings
@@ -14,7 +14,9 @@ router = APIRouter()
 
 class QueryRequest(BaseModel):
     question: str
-    top_k: int | None = None
+    # Bounds: 1..20. Below 1 short-circuits to the empty-corpus path
+    # by accident; above 20 bloats the LLM prompt without quality gains.
+    top_k: int | None = Field(default=None, ge=1, le=20)
 
 
 @router.post("/query")

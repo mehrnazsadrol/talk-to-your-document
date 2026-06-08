@@ -65,6 +65,28 @@ def test_idempotent_upsert(tmp_store):
     assert collection.count() == len(chunks)
 
 
+def test_reingest_same_document_overwrites_in_place(tmp_store):
+    """Re-ingesting the same document_id with modified chunk text updates
+    the existing rows instead of appending — chunk count stays the same,
+    and the new text wins."""
+    chunks = _chunks()
+    embeddings = _embeddings()
+    vs.add_chunks("doc1", "sample.pdf", chunks, embeddings, source_type="pdf")
+
+    updated_chunks = [
+        Chunk(text="UPDATED alpha", start_char=0, end_char=13, chunk_index=0),
+        Chunk(text="UPDATED beta", start_char=13, end_char=25, chunk_index=1),
+        Chunk(text="UPDATED gamma", start_char=25, end_char=38, chunk_index=2),
+    ]
+    vs.add_chunks("doc1", "sample.pdf", updated_chunks, embeddings, source_type="pdf")
+
+    collection = vs._get_collection()
+    assert collection.count() == len(chunks)
+
+    results = vs.query([1.0, 0.0, 0.0], top_k=1)
+    assert results[0]["text"] == "UPDATED alpha"
+
+
 def test_audio_source_type_and_timestamps_round_trip(tmp_store):
     chunks = _chunks()
     embeddings = _embeddings()

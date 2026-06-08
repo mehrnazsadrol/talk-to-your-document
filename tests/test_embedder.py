@@ -23,6 +23,7 @@ def test_embed_single_text_returns_one_vector(monkeypatch):
     assert len(vectors) == 1
 
 
+@pytest.mark.slow
 def test_embed_vectors_have_dim_384():
     vectors = embed_texts(["hello", "world"])
     for v in vectors:
