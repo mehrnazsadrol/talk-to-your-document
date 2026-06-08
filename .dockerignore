@@ -3,7 +3,6 @@
 chroma_db/
 data/
 tests/
-frontend/
 __pycache__/
 *.pyc
 .env
