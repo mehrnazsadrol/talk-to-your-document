@@ -13,6 +13,8 @@ streamlit run frontend/app.py \
   --server.address=0.0.0.0 \
   --server.port=7860 \
   --server.headless=true \
+  --server.enableXsrfProtection=false \
+  --server.enableCORS=false \
   --browser.gatherUsageStats=false &
 UI_PID=$!
 
