@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -55,7 +55,7 @@ def _seed(path: Path, now: datetime) -> None:
 
 
 def test_detect_flags_drift_above_threshold(tmp_path):
-    now = datetime(2026, 6, 1, 12, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 6, 1, 12, 0, tzinfo=UTC)
     path = tmp_path / "queries.jsonl"
     _seed(path, now)
     result = drift.detect(path=path, now=now, threshold=0.5)
@@ -69,7 +69,7 @@ def test_detect_flags_drift_above_threshold(tmp_path):
 
 
 def test_detect_stable_below_threshold(tmp_path):
-    now = datetime(2026, 6, 1, 12, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 6, 1, 12, 0, tzinfo=UTC)
     path = tmp_path / "queries.jsonl"
     _seed(path, now)
     result = drift.detect(path=path, now=now, threshold=2.0)

@@ -26,9 +26,6 @@ def transcribe(path: str) -> tuple[list[dict], float, str]:
     model = _get_model()
     segments, info = model.transcribe(path)
     # materialise generator so info fields populate
-    out = [
-        {"start": float(s.start), "end": float(s.end), "text": s.text.strip()}
-        for s in segments
-    ]
+    out = [{"start": float(s.start), "end": float(s.end), "text": s.text.strip()} for s in segments]
     language = info.language or ""
     return out, float(info.duration), language

@@ -43,9 +43,7 @@ def _seed_pdf(path: Path) -> None:
     if not chunks:
         return
     embeddings = embed_texts([c.text for c in chunks])
-    vector_store.add_chunks(
-        _doc_id(path), path.name, chunks, embeddings, source_type="pdf"
-    )
+    vector_store.add_chunks(_doc_id(path), path.name, chunks, embeddings, source_type="pdf")
 
 
 def _seed_audio(path: Path) -> None:
@@ -192,12 +190,8 @@ def run_eval(golden_path: Path, results_dir: Path, top_k_max: int = 5) -> dict:
     latencies = [pq["latency_ms"] for pq in per_question]
     n = len(per_question)
     aggregate = {
-        "hit_rate_at_3": (
-            sum(1 for pq in per_question if pq["hit@3"]) / n if n else 0.0
-        ),
-        "hit_rate_at_5": (
-            sum(1 for pq in per_question if pq["hit@5"]) / n if n else 0.0
-        ),
+        "hit_rate_at_3": (sum(1 for pq in per_question if pq["hit@3"]) / n if n else 0.0),
+        "hit_rate_at_5": (sum(1 for pq in per_question if pq["hit@5"]) / n if n else 0.0),
         "p50_latency_ms": statistics.median(latencies) if latencies else 0.0,
         "p95_latency_ms": _p95(latencies),
     }
@@ -213,9 +207,7 @@ def run_eval(golden_path: Path, results_dir: Path, top_k_max: int = 5) -> dict:
         },
     }
 
-    timestamp = (
-        datetime.datetime.now(datetime.timezone.utc).isoformat().replace(":", "-")
-    )
+    timestamp = datetime.datetime.now(datetime.UTC).isoformat().replace(":", "-")
     out_path = results_dir / f"{timestamp}.json"
     out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
@@ -234,9 +226,7 @@ def run_eval(golden_path: Path, results_dir: Path, top_k_max: int = 5) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--golden-set", type=Path, default=Path("eval/golden_set.jsonl")
-    )
+    parser.add_argument("--golden-set", type=Path, default=Path("eval/golden_set.jsonl"))
     parser.add_argument("--results-dir", type=Path, default=Path("eval/results"))
     args = parser.parse_args()
 

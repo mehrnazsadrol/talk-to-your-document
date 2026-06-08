@@ -22,9 +22,7 @@ class AudioSegment:
 def _export_slice(audio: PydubAudioSegment, start_ms: int, end_ms: int) -> str:
     tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
     tmp.close()
-    slice_audio = (
-        audio[start_ms:end_ms].set_frame_rate(16000).set_channels(1).set_sample_width(2)
-    )
+    slice_audio = audio[start_ms:end_ms].set_frame_rate(16000).set_channels(1).set_sample_width(2)
     slice_audio.export(tmp.name, format="wav")
     return tmp.name
 
@@ -73,9 +71,7 @@ def transcribe_segments(path: str) -> tuple[list[AudioSegment], float, str]:
     language = ""
     try:
         for i, (start_s, end_s, slice_path) in enumerate(slices):
-            sub_segments, _slice_duration, slice_language = transcriber.transcribe(
-                slice_path
-            )
+            sub_segments, _slice_duration, slice_language = transcriber.transcribe(slice_path)
             if i == 0:
                 language = slice_language
             text = " ".join(s["text"] for s in sub_segments).strip()

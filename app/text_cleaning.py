@@ -18,4 +18,4 @@ def strip_front_matter(text: str) -> str:
     positions = [p for p in (text.find(a) for a in _FRONT_MATTER_ANCHORS) if p != -1]
     if not positions:
         return text
-    return text[min(positions):]
+    return text[min(positions) :]

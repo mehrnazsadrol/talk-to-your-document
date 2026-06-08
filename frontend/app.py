@@ -80,9 +80,7 @@ if "messages" not in st.session_state:
 
 with st.sidebar:
     st.header("Upload sources")
-    pdf_files = st.file_uploader(
-        "PDF", type=["pdf"], key="pdf_upload", accept_multiple_files=True
-    )
+    pdf_files = st.file_uploader("PDF", type=["pdf"], key="pdf_upload", accept_multiple_files=True)
     audio_files = st.file_uploader(
         "Audio",
         type=["wav", "mp3", "m4a", "ogg", "flac", "webm"],
@@ -120,9 +118,7 @@ with st.sidebar:
                         detail = None
                     st.error(f"{pdf_file.name}: {detail or e.response.text}")
                 except httpx.ConnectError:
-                    st.error(
-                        f"Couldn't reach the backend. Is FastAPI running on {API_BASE_URL}?"
-                    )
+                    st.error(f"Couldn't reach the backend. Is FastAPI running on {API_BASE_URL}?")
                 except httpx.HTTPError as e:
                     st.error(f"{pdf_file.name}: request failed: {e}")
 
@@ -132,8 +128,7 @@ with st.sidebar:
                         result = _ingest_audio(audio_file)
                     appended = _append_source(
                         {
-                            "source_filename": result.get("source_filename")
-                            or audio_file.name,
+                            "source_filename": result.get("source_filename") or audio_file.name,
                             "document_id": result["document_id"],
                             "kind": "audio",
                             "num_chunks": result["num_chunks"],
@@ -152,9 +147,7 @@ with st.sidebar:
                         detail = None
                     st.error(f"{audio_file.name}: {detail or e.response.text}")
                 except httpx.ConnectError:
-                    st.error(
-                        f"Couldn't reach the backend. Is FastAPI running on {API_BASE_URL}?"
-                    )
+                    st.error(f"Couldn't reach the backend. Is FastAPI running on {API_BASE_URL}?")
                 except httpx.HTTPError as e:
                     st.error(f"{audio_file.name}: request failed: {e}")
 
@@ -225,8 +218,6 @@ if prompt:
         except httpx.HTTPStatusError as e:
             st.error(f"Query failed: {e.response.text}")
         except httpx.ConnectError:
-            st.error(
-                f"Couldn't reach the backend. Is FastAPI running on {API_BASE_URL}?"
-            )
+            st.error(f"Couldn't reach the backend. Is FastAPI running on {API_BASE_URL}?")
         except httpx.HTTPError as e:
             st.error(f"Request failed: {e}")

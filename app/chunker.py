@@ -69,9 +69,7 @@ def _split_offsets(
     return out
 
 
-def chunk_text(
-    text: str, chunk_size: int = 500, chunk_overlap: int = 50
-) -> list[Chunk]:
+def chunk_text(text: str, chunk_size: int = 500, chunk_overlap: int = 50) -> list[Chunk]:
     if not text:
         return []
 

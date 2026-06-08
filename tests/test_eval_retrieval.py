@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 
 import pytest
 
@@ -66,9 +65,7 @@ def test_run_eval_end_to_end(tmp_store, tmp_path, monkeypatch):
         [0.0, 1.0, 0.0, 0.0],
         [0.0, 0.0, 1.0, 0.0],
     ]
-    vs.add_chunks(
-        "doc-eval", "paper.pdf", fake_chunks, fake_embeddings, source_type="pdf"
-    )
+    vs.add_chunks("doc-eval", "paper.pdf", fake_chunks, fake_embeddings, source_type="pdf")
 
     monkeypatch.setattr(eval_retrieval, "seed_corpus", lambda persist_dir: None)
 

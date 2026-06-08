@@ -18,9 +18,7 @@ def _get_client() -> chromadb.ClientAPI:
 
 
 def _get_collection():
-    return _get_client().get_or_create_collection(
-        "documents", metadata={"hnsw:space": "cosine"}
-    )
+    return _get_client().get_or_create_collection("documents", metadata={"hnsw:space": "cosine"})
 
 
 def add_chunks(

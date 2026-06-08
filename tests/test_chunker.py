@@ -67,8 +67,7 @@ def test_chunks_concatenate_to_original_after_deoverlap():
         "Paragraph one with several sentences. It has commas, periods. "
         "And it goes on for a while.\n\n"
         "Paragraph two is shorter.\n\n"
-        "Paragraph three. Multiple. Sentences. Here.\n\n"
-        + ("Filler line. " * 80)
+        "Paragraph three. Multiple. Sentences. Here.\n\n" + ("Filler line. " * 80)
     )
 
     chunks = chunk_text(corpus, chunk_size=50, chunk_overlap=10)

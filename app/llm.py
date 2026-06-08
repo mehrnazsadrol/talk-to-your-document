@@ -26,9 +26,7 @@ def _get_client() -> OpenAI:
     return _client
 
 
-def generate_answer(
-    question: str, retrieved: list[dict]
-) -> tuple[str, dict | None]:
+def generate_answer(question: str, retrieved: list[dict]) -> tuple[str, dict | None]:
     parts = []
     for r in retrieved:
         meta = r["metadata"]

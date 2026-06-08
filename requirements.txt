@@ -5,6 +5,7 @@ pypdf
 python-multipart
 pytest
 pytest-cov
+ruff
 httpx
 torch
 sentence-transformers

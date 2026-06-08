@@ -73,9 +73,7 @@ def query(req: QueryRequest):
                 mlrun.log_metric("prompt_tokens", usage["prompt_tokens"])
                 mlrun.log_metric("completion_tokens", usage["completion_tokens"])
 
-            source_types = sorted(
-                {r["metadata"].get("source_type", "unknown") for r in retrieved}
-            )
+            source_types = sorted({r["metadata"].get("source_type", "unknown") for r in retrieved})
             mlrun.set_tag("source_types", ",".join(source_types))
 
             sources = [

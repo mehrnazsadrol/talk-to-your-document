@@ -11,14 +11,14 @@ test runs with MLflow off by default. Tests that need MLflow enabled
 `settings.mlflow_enabled = True` explicitly — monkeypatch is per-test, so
 the order is: autouse disables, then the test's own fixture re-enables.
 """
+
 from __future__ import annotations
 
 import hashlib
 
 import pytest
 
-from app import embedder, llm, transcriber
-from app import vector_store
+from app import embedder, llm, transcriber, vector_store
 from app.config import settings
 
 

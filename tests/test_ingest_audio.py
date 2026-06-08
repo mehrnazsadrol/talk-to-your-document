@@ -88,9 +88,15 @@ def test_ingest_audio_indexes_chunks_with_timestamps(tmp_store, monkeypatch):
 
     def fake_transcribe_segments(path):
         segments = [
-            AudioSegment(text="first segment text", start_seconds=0.0, end_seconds=1.0, segment_index=0),
-            AudioSegment(text="second segment text", start_seconds=1.0, end_seconds=2.5, segment_index=1),
-            AudioSegment(text="third segment text", start_seconds=2.5, end_seconds=4.0, segment_index=2),
+            AudioSegment(
+                text="first segment text", start_seconds=0.0, end_seconds=1.0, segment_index=0
+            ),
+            AudioSegment(
+                text="second segment text", start_seconds=1.0, end_seconds=2.5, segment_index=1
+            ),
+            AudioSegment(
+                text="third segment text", start_seconds=2.5, end_seconds=4.0, segment_index=2
+            ),
         ]
         return segments, 4.0, "en"
 
@@ -132,8 +138,8 @@ def test_ingest_audio_multi_chunk_straddling_joiners(tmp_store, monkeypatch):
     every segment it overlaps, including ones bordering the joiner."""
     from app import audio
     from app.audio import AudioSegment
-    from app.routers import ingest_audio as ingest_audio_router
     from app.chunker import chunk_text as real_chunk_text
+    from app.routers import ingest_audio as ingest_audio_router
 
     # Three segments, each ~40 chars, joined by "\n\n" => full_text ~124 chars.
     seg_text = "x" * 40
@@ -171,15 +177,11 @@ def test_ingest_audio_multi_chunk_straddling_joiners(tmp_store, monkeypatch):
     # or part of one. With the fix, chunks straddling a joiner pick up
     # both the previous and next segment's timestamps.
     for meta in metas:
-        assert meta["end_seconds"] > meta["start_seconds"], (
-            f"chunk timestamps collapsed: {meta}"
-        )
+        assert meta["end_seconds"] > meta["start_seconds"], f"chunk timestamps collapsed: {meta}"
 
     # At least one chunk must span more than a single segment (i.e. cross
     # a joiner) — otherwise the test isn't exercising the boundary case.
-    spans_multiple = [
-        m for m in metas if (m["end_seconds"] - m["start_seconds"]) > 1.0
-    ]
+    spans_multiple = [m for m in metas if (m["end_seconds"] - m["start_seconds"]) > 1.0]
     assert spans_multiple, "expected at least one chunk to span a joiner"
 
 

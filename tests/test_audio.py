@@ -40,11 +40,13 @@ class _FakePydubAudio:
 def _install_pydub_stub(monkeypatch, length_ms: int, nonsilent_ranges: list):
     fake_audio = _FakePydubAudio(length_ms)
     monkeypatch.setattr(
-        audio_mod, "PydubAudioSegment",
+        audio_mod,
+        "PydubAudioSegment",
         type("PS", (), {"from_file": staticmethod(lambda _path: fake_audio)}),
     )
     monkeypatch.setattr(
-        audio_mod, "detect_nonsilent",
+        audio_mod,
+        "detect_nonsilent",
         lambda _audio, min_silence_len, silence_thresh: list(nonsilent_ranges),
     )
 

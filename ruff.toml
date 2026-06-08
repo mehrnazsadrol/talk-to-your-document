@@ -1,0 +1,7 @@
+line-length = 100
+target-version = "py313"
+exclude = ["chroma_db", "mlruns", "data", "eval/results", ".venv", "htmlcov"]
+
+[lint]
+select = ["E", "F", "I", "W", "B", "UP"]
+ignore = ["E501"]

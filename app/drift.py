@@ -1,6 +1,6 @@
 import json
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -14,7 +14,7 @@ def log_query(question: str, embedding: list[float], top_distance: float) -> Non
     if not settings.drift_logging_enabled:
         return
     row = {
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "question": question,
         "embedding": embedding,
         "top_distance": top_distance,
@@ -56,7 +56,7 @@ def detect(
     now: datetime | None = None,
     threshold: float = 0.15,
 ) -> dict:
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     current = load_window(path, now - timedelta(days=7), now)
     baseline = load_window(path, now - timedelta(days=14), now - timedelta(days=7))
 

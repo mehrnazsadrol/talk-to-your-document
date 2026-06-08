@@ -154,15 +154,14 @@ def test_multi_segment_span_offset_mapping(tmp_store):
     # Simulate three segments with timestamps; build a single chunk that
     # spans the last two of them.
     seg_offsets = [
-        (0, 5, 0.0, 1.0),    # seg 1
-        (7, 12, 1.0, 2.5),   # seg 2
+        (0, 5, 0.0, 1.0),  # seg 1
+        (7, 12, 1.0, 2.5),  # seg 2
         (14, 19, 2.5, 4.0),  # seg 3
     ]
     # Chunk covers chars 7..19 — overlaps segs 2 and 3.
     chunk_start, chunk_end = 7, 19
     overlapping = [
-        (s, e, ts, te) for (s, e, ts, te) in seg_offsets
-        if s < chunk_end and e > chunk_start
+        (s, e, ts, te) for (s, e, ts, te) in seg_offsets if s < chunk_end and e > chunk_start
     ]
     assert len(overlapping) == 2
     chunk_start_s = overlapping[0][2]

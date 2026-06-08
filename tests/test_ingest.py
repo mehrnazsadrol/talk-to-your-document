@@ -21,6 +21,7 @@ def test_ingest_pdf_happy_path(tmp_path, monkeypatch):
     monkeypatch.setenv("INGEST_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.setattr(settings, "chroma_persist_dir", str(tmp_path / "chroma"))
     import app.vector_store as vs
+
     monkeypatch.setattr(vs, "_client", None)
 
     pdf_bytes = _make_pdf_bytes(pages=2)

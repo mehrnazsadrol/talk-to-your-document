@@ -28,9 +28,7 @@ def mlflow_disabled(monkeypatch):
 @pytest.fixture
 def mlflow_tmp(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(
-        settings, "mlflow_tracking_uri", f"file://{tmp_path}/mlruns"
-    )
+    monkeypatch.setattr(settings, "mlflow_tracking_uri", f"file://{tmp_path}/mlruns")
     monkeypatch.setattr(settings, "mlflow_enabled", True)
     monkeypatch.setattr(tracking, "_initialized", False)
     tracking.init()
@@ -44,8 +42,7 @@ def _seed(num: int = 3) -> None:
         "gamma grape grows on vines",
     ][:num]
     chunks = [
-        Chunk(text=t, start_char=0, end_char=len(t), chunk_index=i)
-        for i, t in enumerate(texts)
+        Chunk(text=t, start_char=0, end_char=len(t), chunk_index=i) for i, t in enumerate(texts)
     ]
     embeddings = embed_texts(texts)
     vs.add_chunks("doc1", "sample.pdf", chunks, embeddings, source_type="pdf")
@@ -70,7 +67,10 @@ def test_happy_path_returns_answer_and_sources(tmp_store, monkeypatch):
     monkeypatch.setattr(
         llm,
         "generate_answer",
-        lambda q, r: ("mocked answer [chunk_index=0]", {"prompt_tokens": 1, "completion_tokens": 2}),
+        lambda q, r: (
+            "mocked answer [chunk_index=0]",
+            {"prompt_tokens": 1, "completion_tokens": 2},
+        ),
     )
 
     response = TestClient(app).post("/query", json={"question": "what is alpha?"})
@@ -98,12 +98,12 @@ def test_happy_path_returns_answer_and_sources(tmp_store, monkeypatch):
 def test_top_k_override_limits_sources(tmp_store, monkeypatch):
     _seed()
     monkeypatch.setattr(
-        llm, "generate_answer", lambda q, r: ("mocked", {"prompt_tokens": 0, "completion_tokens": 0})
+        llm,
+        "generate_answer",
+        lambda q, r: ("mocked", {"prompt_tokens": 0, "completion_tokens": 0}),
     )
 
-    response = TestClient(app).post(
-        "/query", json={"question": "what is alpha?", "top_k": 1}
-    )
+    response = TestClient(app).post("/query", json={"question": "what is alpha?", "top_k": 1})
 
     assert response.status_code == 200
     body = response.json()
@@ -113,7 +113,9 @@ def test_top_k_override_limits_sources(tmp_store, monkeypatch):
 def test_mlflow_disabled_creates_no_mlruns(tmp_store, mlflow_disabled, monkeypatch):
     _seed()
     monkeypatch.setattr(
-        llm, "generate_answer", lambda q, r: ("answer", {"prompt_tokens": 1, "completion_tokens": 2})
+        llm,
+        "generate_answer",
+        lambda q, r: ("answer", {"prompt_tokens": 1, "completion_tokens": 2}),
     )
 
     response = TestClient(app).post("/query", json={"question": "what is alpha?"})
@@ -157,16 +159,11 @@ def test_mlflow_enabled_logs_one_run_with_metrics_params_artifacts(
     assert row["tags.source_types"] == "pdf"
 
     run_id = row["run_id"]
-    retrieved_artifact = mlflow.artifacts.load_dict(
-        f"runs:/{run_id}/retrieved.json"
-    )
+    retrieved_artifact = mlflow.artifacts.load_dict(f"runs:/{run_id}/retrieved.json")
     artifact_chunk_ids = {
-        (r["metadata"]["document_id"], r["metadata"]["chunk_index"])
-        for r in retrieved_artifact
+        (r["metadata"]["document_id"], r["metadata"]["chunk_index"]) for r in retrieved_artifact
     }
-    response_chunk_ids = {
-        (s["document_id"], s["chunk_index"]) for s in body["sources"]
-    }
+    response_chunk_ids = {(s["document_id"], s["chunk_index"]) for s in body["sources"]}
     assert artifact_chunk_ids == response_chunk_ids
 
     request_artifact = mlflow.artifacts.load_dict(f"runs:/{run_id}/request.json")
@@ -204,16 +201,12 @@ def test_response_shape_matches_contract(tmp_store, monkeypatch):
 
 
 def test_top_k_zero_returns_422(tmp_store):
-    response = TestClient(app).post(
-        "/query", json={"question": "anything?", "top_k": 0}
-    )
+    response = TestClient(app).post("/query", json={"question": "anything?", "top_k": 0})
     assert response.status_code == 422
 
 
 def test_top_k_above_max_returns_422(tmp_store):
-    response = TestClient(app).post(
-        "/query", json={"question": "anything?", "top_k": 1000}
-    )
+    response = TestClient(app).post("/query", json={"question": "anything?", "top_k": 1000})
     assert response.status_code == 422
 
 

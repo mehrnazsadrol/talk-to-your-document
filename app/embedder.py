@@ -18,6 +18,4 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     if not texts:
         return []
     model = _get_model()
-    return model.encode(
-        texts, normalize_embeddings=True, convert_to_numpy=True
-    ).tolist()
+    return model.encode(texts, normalize_embeddings=True, convert_to_numpy=True).tolist()
