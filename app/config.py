@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     audio_silence_thresh_db: int = -40
     audio_max_segment_seconds: int = 30
     mlflow_tracking_uri: str = "file://./mlruns"
-    mlflow_experiment: str = "talk-to-your-documents"
+    mlflow_experiment: str = "talk-to-your-document"
     mlflow_enabled: bool = True
     drift_logging_enabled: bool = True
     drift_threshold: float = 0.15
