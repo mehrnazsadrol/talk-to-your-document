@@ -31,7 +31,7 @@ def test_long_text_chunks_respect_size_and_overlap():
         assert c.end_char - c.start_char <= chunk_size_chars + chunk_overlap_chars
         assert c.text == text[c.start_char : c.end_char]
 
-    for prev, nxt in zip(chunks, chunks[1:]):
+    for prev, nxt in zip(chunks, chunks[1:], strict=False):
         expected_overlap = min(chunk_overlap_chars, prev.end_char - prev.start_char)
         assert nxt.start_char == prev.end_char - expected_overlap
 
@@ -76,7 +76,7 @@ def test_chunks_concatenate_to_original_after_deoverlap():
     # First chunk contributes its whole text; each subsequent chunk
     # contributes only the slice starting where the previous chunk ended.
     rebuilt = chunks[0].text
-    for prev, nxt in zip(chunks, chunks[1:]):
+    for prev, nxt in zip(chunks, chunks[1:], strict=False):
         # The next chunk's first (prev.end_char - nxt.start_char) chars
         # are the overlap with prev; skip them.
         overlap = prev.end_char - nxt.start_char

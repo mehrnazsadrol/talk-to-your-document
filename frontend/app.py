@@ -181,7 +181,7 @@ if st.session_state.sources and not st.session_state.messages:
         "What evidence is given for X?",
     ]
     cols = st.columns(3)
-    for col, suggestion in zip(cols, suggestions):
+    for col, suggestion in zip(cols, suggestions, strict=True):
         if col.button(suggestion, key=f"suggest_{suggestion}"):
             st.session_state._suggested = suggestion
             st.rerun()

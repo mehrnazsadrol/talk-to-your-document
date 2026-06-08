@@ -4,4 +4,4 @@ exclude = ["chroma_db", "mlruns", "data", "eval/results", ".venv", "htmlcov"]
 
 [lint]
 select = ["E", "F", "I", "W", "B", "UP"]
-ignore = ["E501"]
+ignore = ["E501", "B008"]

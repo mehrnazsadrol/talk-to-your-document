@@ -70,5 +70,5 @@ def query(query_embedding: list[float], top_k: int) -> list[dict]:
     distances = result["distances"][0]
     return [
         {"text": text, "metadata": meta, "distance": dist}
-        for text, meta, dist in zip(documents, metadatas, distances)
+        for text, meta, dist in zip(documents, metadatas, distances, strict=True)
     ]
